@@ -1,19 +1,17 @@
-#include <stdio.h>
-#include <string.h>
+#include "api.h"
 #include "crypto_aead.h"
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 
-void string2hexString(unsigned char* input, int clen, char* output);
-void *hextobyte(char *hexstring, unsigned char* bytearray );
-
-
-int main(int argc, char const *argv[])
-{
 #define CRYPTO_BYTES 64
-#define CRYPTO_KEYBYTES 16
-#define CRYPTO_NSECBYTES 0
-#define CRYPTO_NPUBBYTES 12
-#define CRYPTO_ABYTES 8
-#define CRYPTO_NOOVERLAP 1
+
+void string2hexString(unsigned char *input, int clen, char *output);
+void *hextobyte(char *hexstring, unsigned char *bytearray);
+
+int main(int argc, char *argv[])
+{
 
     unsigned long long mlen;
     unsigned long long clen;
@@ -26,7 +24,7 @@ int main(int argc, char const *argv[])
 
     unsigned char key[CRYPTO_KEYBYTES];
 
-    char pl[CRYPTO_BYTES] = "meltembaba";
+    char pl[CRYPTO_BYTES] = "DEADBEEF29";
     char chex[CRYPTO_BYTES] = "";
     char keyhex[2 * CRYPTO_KEYBYTES + 1] = "0123456789ABCDEF0123456789ABCDEF";
     char nonce[2 * CRYPTO_NPUBBYTES + 1] = "000000000000111111111111";
@@ -60,17 +58,57 @@ int main(int argc, char const *argv[])
     hextobyte(keyhex, key);
     hextobyte(nonce, npub);
 
-    printf("Elephant light-weight cipher\n");
-    printf("Plaintext: %s\n", plaintext);
-    printf("Key: %s\n", keyhex);
-    printf("Nonce: %s\n", nonce);
-    printf("Additional Information: %s\n\n", ad);
+    // printf("Elephant light-weight cipher\n");
+    // printf("Plaintext: %s\n", plaintext);
+    // printf("Key: %s\n", keyhex);
+    // printf("Nonce: %s\n", nonce);
+    // printf("Additional Information: %s\n\n", ad);
 
-    printf("Plaintext: %s\n", plaintext);
+    // printf("Plaintext: %s\n", plaintext);
+
+    clock_t begin_crypt = clock();
 
     int ret = crypto_aead_encrypt(cipher, &clen, plaintext, strlen(plaintext), ad, strlen(ad), nsec, npub, key);
-}
 
+    clock_t end_crypt = clock();
+
+    string2hexString(cipher, clen, chex);
+    // hextobyte(chex, cipher);
+
+    printf("cipher_text:\t%s\n", chex, clen);
+
+    clock_t begin_dec = clock();
+
+    ret = crypto_aead_decrypt(plaintext, &mlen, nsec, cipher, clen, ad, strlen(ad), npub, key);
+
+    clock_t end_dec = clock();
+
+    plaintext[mlen] = '\0';
+    printf("plain_text:\t%s\n", plaintext);
+    // printf("%s\n", plaintext);
+
+    if (ret == 0)
+    {
+        // printf("Success!\n");
+    }
+    else
+    {
+        exit(1);
+    }
+
+    double time_spent_crypt = (double)(end_crypt - begin_crypt) / CLOCKS_PER_SEC;
+    double time_spent_dec = (double)(end_dec - begin_dec) / CLOCKS_PER_SEC;
+
+    printf("et_crypt:\t%lf\n", time_spent_crypt);
+    printf("et_crypt_clok:\t%lf\n", time_spent_crypt * 1200000000);
+
+    printf("et_dec:\t%lf\n", time_spent_dec);
+    printf("et_dec_clok:\t%lf\n", time_spent_dec * 1200000000);
+
+    sleep(1);
+
+    return 0;
+}
 void string2hexString(unsigned char *input, int clen, char *output)
 {
     int loop;
@@ -87,7 +125,6 @@ void string2hexString(unsigned char *input, int clen, char *output)
     //insert NULL at the end of the output string
     output[i++] = '\0';
 }
-
 void *hextobyte(char *hexstring, unsigned char *bytearray)
 {
 
